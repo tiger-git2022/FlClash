@@ -53,6 +53,7 @@ const _builtinAppNames = <String, String>{
   'mihomo': 'FlClash 内核',
   'com.follow.clash': 'FlClash',
   'com.follow.clash.dev': 'FlClash (定制版)',
+  'com.follow.clash.custom': 'FlClash (定制版)',
   'com.google.android.gms': 'Google Play 服务',
   'com.google.android.gsf': 'Google 服务框架',
   'com.android.vending': 'Google Play 商店',
