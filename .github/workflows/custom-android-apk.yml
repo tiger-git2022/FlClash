@@ -98,31 +98,47 @@ jobs:
           curl -fsSL --retry 3 -o "$bundle" "https://curl.se/ca/$CA_BUNDLE"
           echo "$CA_BUNDLE_SHA256  $bundle" | sha256sum -c -
 
-      - name: Compute Monotonic Release Version
+      - name: Compute SemVer Release Version
         id: ver
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           base="$(sed -n 's/^version: *\([0-9]*\.[0-9]*\.[0-9]*\).*/\1/p' pubspec.yaml)"
           committed="$(sed -n 's/^version: .*+\([0-9]*\)$/\1/p' pubspec.yaml)"
+          IFS='.' read -r maj min pat <<< "$base"
+
+          # Check existing vX.Y.Z releases in this repo and bump patch above the highest one
+          latest_tag="$(gh release list --limit 20 --json tagName --jq '.[].tagName' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)"
+          if [ -n "$latest_tag" ]; then
+            IFS='.' read -r lmaj lmin lpat <<< "${latest_tag#v}"
+            if (( lmaj > maj || (lmaj == maj && lmin > min) || (lmaj == maj && lmin == min && lpat >= pat) )); then
+              maj=$lmaj; min=$lmin; pat=$((lpat + 1))
+            fi
+          else
+            pat=$((pat + 1))
+          fi
+
+          semver="${maj}.${min}.${pat}"
           build="$(date -u +%Y%m%d%H)"
           if ((build <= ${committed:-0})); then
             build=$((committed + 1))
           fi
-          full="${base}+${build}"
-          sed -i "s/^version: .*/version: $full/" pubspec.yaml
-          echo "version=$full" >> "$GITHUB_OUTPUT"
-          echo "tag=v$full" >> "$GITHUB_OUTPUT"
-          echo "Building version $full (tag v$full)"
+          sed -i "s/^version: .*/version: ${semver}+${build}/" pubspec.yaml
+          echo "version=${semver}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${semver}" >> "$GITHUB_OUTPUT"
+          echo "Building standard SemVer v${semver} (versionCode ${build})"
 
       - name: Build Android APK
         env:
           ANDROID_NDK_HOME: ${{ steps.build-ndk.outputs.ndk-path }}
-        run: dart tool/package.dart android --env stable -v
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: dart tool/package.dart android --tag "$TAG" --env stable -v
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: FlClash-TrafficMonitor-Android
-          path: ./dist/*.apk
+          path: ./dist/*
           overwrite: true
 
       - name: Publish to GitHub Release
@@ -132,10 +148,10 @@ jobs:
           VERSION: ${{ steps.ver.outputs.version }}
         run: |
           DATE_STR="$(date -u +%Y-%m-%d\ %H:%M\ UTC)"
-          NOTES="自动构建的 FlClash 流量监控定制版（版本：$VERSION，构建时间：$DATE_STR）。使用固定签名密钥，支持应用内「关于 → 检查更新」直接覆盖升级，保留全部配置与统计数据。"
+          NOTES="FlClash 流量监控定制版 $TAG（构建时间：$DATE_STR）。含校验文件与固定签名，支持应用内「关于 → 检查更新」直接覆盖升级，保留全部配置与流量统计数据。"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" ./dist/*.apk --clobber
+            gh release upload "$TAG" ./dist/* --clobber
             gh release edit "$TAG" --notes "$NOTES" --latest
           else
-            gh release create "$TAG" ./dist/*.apk --title "FlClash 定制版 $TAG" --notes "$NOTES" --latest
+            gh release create "$TAG" ./dist/* --title "FlClash 定制版 $TAG" --notes "$NOTES" --latest
           fi
