@@ -1,5 +1,6 @@
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
+import 'package:fl_clash/features/traffic_monitor/traffic_monitor_view.dart';
 import 'package:fl_clash/l10n/l10n.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/providers/providers.dart';
@@ -68,6 +69,7 @@ class _ToolViewState extends ConsumerState<ToolsView> {
         const _ThemeItem(),
         if (system.isDesktop) const _HotkeyItem(),
         if (system.isAndroid) const _AccessItem(),
+        const _TrafficMonitorItem(),
         const _BackupItem(),
         const _AdvancedConfigItem(),
         const _GeneralItem(),
@@ -170,6 +172,19 @@ class _BackupItem extends StatelessWidget {
       leading: const GlyphIcon(AppGlyphs.cloudSync),
       title: Text(context.appLocalizations.backupAndRestore),
       widget: const BackupAndRestore(),
+    );
+  }
+}
+
+class _TrafficMonitorItem extends StatelessWidget {
+  const _TrafficMonitorItem();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListItem.open(
+      leading: const GlyphIcon(AppGlyphs.dataUsage),
+      title: const Text('流量统计'),
+      widget: const TrafficMonitorView(),
     );
   }
 }

@@ -1,0 +1,52 @@
+name: Sync Upstream FlClash
+
+on:
+  schedule:
+    # 每天北京时间 10:00 (UTC 02:00) 检查一次官方更新
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch and Merge Upstream
+        id: merge
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/chen08209/FlClash.git
+          git fetch upstream main
+
+          LOCAL_HEAD="$(git rev-parse HEAD)"
+          UPSTREAM_HEAD="$(git rev-parse upstream/main)"
+          if git merge-base --is-ancestor "$UPSTREAM_HEAD" "$LOCAL_HEAD"; then
+            echo "Already up to date with upstream/main."
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git merge --no-edit upstream/main; then
+            git push origin main
+            echo "Merged upstream/main cleanly and pushed."
+            echo "updated=true" >> "$GITHUB_OUTPUT"
+          else
+            git merge --abort || true
+            echo "::error::自动合并 chen08209/FlClash 发生代码冲突，请人工解决一次冲突后推送。"
+            exit 1
+          fi
+
+      - name: Trigger APK Build on Update
+        if: steps.merge.outputs.updated == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run custom-android-apk.yml
