@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/features/form/form.dart';
 import 'package:fl_clash/features/traffic_monitor/traffic_monitor_service.dart';
@@ -41,6 +43,7 @@ class _TrafficMonitorViewState extends State<TrafficMonitorView> {
     _gistIdCtrl = TextEditingController(text: _svc.gistId);
     _tokenCtrl = TextEditingController(text: _svc.gistToken);
     _svc.addListener(_onUpdate);
+    unawaited(_svc.refreshAppNames());
   }
 
   @override
@@ -62,18 +65,22 @@ class _TrafficMonitorViewState extends State<TrafficMonitorView> {
     required String label,
     required bool active,
     required VoidCallback onTap,
+    bool center = false,
   }) {
     final cs = context.colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        alignment: center ? Alignment.center : null,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: active ? cs.primary : cs.primaryContainer.withValues(alpha: 0.35),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 13,
             fontWeight: active ? FontWeight.w600 : FontWeight.w400,
@@ -482,144 +489,178 @@ class _TrafficMonitorViewState extends State<TrafficMonitorView> {
 
     return Scaffold(
       title: '流量统计',
-      body: ListView(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: context.contentTopPadding,
-          bottom: 32 + context.bottomInset,
+      body: Builder(
+        builder: (context) => ListView(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: context.contentTopPadding + 8,
+            bottom: 32 + context.bottomInset,
+          ),
+          children: [
+            if (_svc.installedAppsPermissionMissing) ...[
+              GestureDetector(
+                onTap: () => unawaited(
+                  _svc.refreshAppNames(requestPermission: true),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: context.colorScheme.primaryContainer.withValues(
+                      alpha: 0.4,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '点此授权「读取应用列表」，自动将全部包名显示为中文应用名 →',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: context.colorScheme.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            _buildSummaryCard(),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _chip(
+                  label: '今日',
+                  active: _range == 'today',
+                  onTap: () => setState(() {
+                    _range = 'today';
+                    _expandedKey = null;
+                  }),
+                ),
+                _chip(
+                  label: '近7天',
+                  active: _range == '7d',
+                  onTap: () => setState(() {
+                    _range = '7d';
+                    _expandedKey = null;
+                  }),
+                ),
+                _chip(
+                  label: '近30天',
+                  active: _range == '30d',
+                  onTap: () => setState(() {
+                    _range = '30d';
+                    _expandedKey = null;
+                  }),
+                ),
+                _chip(
+                  label: '全部',
+                  active: _range == 'all',
+                  onTap: () => setState(() {
+                    _range = 'all';
+                    _expandedKey = null;
+                  }),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _chip(
+                  label: '仅代理',
+                  active: _mode == 'proxy',
+                  onTap: () => setState(() {
+                    _mode = 'proxy';
+                    _expandedKey = null;
+                  }),
+                ),
+                _chip(
+                  label: '全部',
+                  active: _mode == 'all',
+                  onTap: () => setState(() {
+                    _mode = 'all';
+                    _expandedKey = null;
+                  }),
+                ),
+                _chip(
+                  label: '仅直连',
+                  active: _mode == 'direct',
+                  onTap: () => setState(() {
+                    _mode = 'direct';
+                    _expandedKey = null;
+                  }),
+                ),
+                _chip(
+                  label: _billed ? '计费倍率: 开' : '计费倍率: 关',
+                  active: _billed,
+                  onTap: () => setState(() {
+                    _billed = !_billed;
+                    _expandedKey = null;
+                  }),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _chip(
+                    label: '应用',
+                    active: _tab == 'apps',
+                    center: true,
+                    onTap: () => setState(() {
+                      _tab = 'apps';
+                      _expandedKey = null;
+                    }),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _chip(
+                    label: '网站',
+                    active: _tab == 'domains',
+                    center: true,
+                    onTap: () => setState(() {
+                      _tab = 'domains';
+                      _expandedKey = null;
+                    }),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _chip(
+                    label: '节点',
+                    active: _tab == 'nodes',
+                    center: true,
+                    onTap: () => setState(() {
+                      _tab = 'nodes';
+                      _expandedKey = null;
+                    }),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _chip(
+                    label: '云同步',
+                    active: _tab == 'sync',
+                    center: true,
+                    onTap: () => setState(() {
+                      _tab = 'sync';
+                      _expandedKey = null;
+                    }),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            bodyContent,
+          ],
         ),
-        children: [
-          _buildSummaryCard(),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _chip(
-                label: '今日',
-                active: _range == 'today',
-                onTap: () => setState(() {
-                  _range = 'today';
-                  _expandedKey = null;
-                }),
-              ),
-              _chip(
-                label: '近7天',
-                active: _range == '7d',
-                onTap: () => setState(() {
-                  _range = '7d';
-                  _expandedKey = null;
-                }),
-              ),
-              _chip(
-                label: '近30天',
-                active: _range == '30d',
-                onTap: () => setState(() {
-                  _range = '30d';
-                  _expandedKey = null;
-                }),
-              ),
-              _chip(
-                label: '全部',
-                active: _range == 'all',
-                onTap: () => setState(() {
-                  _range = 'all';
-                  _expandedKey = null;
-                }),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _chip(
-                label: '仅代理',
-                active: _mode == 'proxy',
-                onTap: () => setState(() {
-                  _mode = 'proxy';
-                  _expandedKey = null;
-                }),
-              ),
-              _chip(
-                label: '全部',
-                active: _mode == 'all',
-                onTap: () => setState(() {
-                  _mode = 'all';
-                  _expandedKey = null;
-                }),
-              ),
-              _chip(
-                label: '仅直连',
-                active: _mode == 'direct',
-                onTap: () => setState(() {
-                  _mode = 'direct';
-                  _expandedKey = null;
-                }),
-              ),
-              _chip(
-                label: _billed ? '计费倍率: 开' : '计费倍率: 关',
-                active: _billed,
-                onTap: () => setState(() {
-                  _billed = !_billed;
-                  _expandedKey = null;
-                }),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _chip(
-                  label: '应用',
-                  active: _tab == 'apps',
-                  onTap: () => setState(() {
-                    _tab = 'apps';
-                    _expandedKey = null;
-                  }),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _chip(
-                  label: '网站',
-                  active: _tab == 'domains',
-                  onTap: () => setState(() {
-                    _tab = 'domains';
-                    _expandedKey = null;
-                  }),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _chip(
-                  label: '节点',
-                  active: _tab == 'nodes',
-                  onTap: () => setState(() {
-                    _tab = 'nodes';
-                    _expandedKey = null;
-                  }),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _chip(
-                  label: '云同步',
-                  active: _tab == 'sync',
-                  onTap: () => setState(() {
-                    _tab = 'sync';
-                    _expandedKey = null;
-                  }),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          bodyContent,
-        ],
       ),
     );
   }

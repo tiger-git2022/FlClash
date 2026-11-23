@@ -49,6 +49,279 @@ final _ipRe = RegExp(r'^(\d{1,3}\.){3}\d{1,3}$');
 final _multRe1 = RegExp(r'(\d+(?:\.\d+)?)\s*[xX×倍](?![a-zA-Z0-9])');
 final _multRe2 = RegExp(r'(?<![a-zA-Z0-9])[xX×]\s*(\d+(?:\.\d+)?)(?![a-zA-Z0-9])');
 
+const _builtinAppNames = <String, String>{
+  'mihomo': 'FlClash 内核',
+  'com.follow.clash': 'FlClash',
+  'com.follow.clash.dev': 'FlClash (定制版)',
+  'com.google.android.gms': 'Google Play 服务',
+  'com.google.android.gsf': 'Google 服务框架',
+  'com.android.vending': 'Google Play 商店',
+  'com.google.android.youtube': 'YouTube',
+  'com.google.android.apps.photos': 'Google 相册',
+  'com.google.android.gm': 'Gmail',
+  'com.google.android.googlequicksearchbox': 'Google 搜索',
+  'com.android.chrome': 'Chrome',
+  'com.microsoft.emmx': 'Microsoft Edge',
+  'com.microsoft.skydrive': 'OneDrive',
+  'com.twitter.android': 'X (Twitter)',
+  'org.telegram.messenger': 'Telegram',
+  'org.telegram.messenger.web': 'Telegram',
+  'com.tencent.mm': '微信',
+  'com.tencent.mobileqq': 'QQ',
+  'tv.danmaku.bili': '哔哩哔哩',
+  'com.bilibili.app.in': 'Bilibili 国际版',
+  'moe.tarsin.ehviewer': 'EhViewer',
+  'com.hippo.ehviewer': 'EhViewer',
+  'com.ehviewer': 'EhViewer',
+  'eu.kanade.tachiyomi': 'Tachiyomi / Mihon',
+  'app.mihon': 'Mihon',
+  'com.openai.chatgpt': 'ChatGPT',
+  'com.anthropic.claude': 'Claude',
+  'com.discord': 'Discord',
+  'com.reddit.frontpage': 'Reddit',
+  'jp.pxv.android': 'Pixiv',
+  'com.valvesoftware.android.steam.community': 'Steam',
+  'com.netflix.mediaclient': 'Netflix',
+  'com.spotify.music': 'Spotify',
+  'com.github.android': 'GitHub',
+};
+
+const _subdomainLabels = <String, String>{
+  'daily-cloudcode-pa.googleapis.com': 'Antigravity / Gemini 代码接口',
+  'aicode.googleapis.com': 'Google AI 编程接口',
+  'jetski-webchannel.googleapis.com': 'Antigravity 实时通道',
+  'generativelanguage.googleapis.com': 'Gemini API',
+  'fonts.googleapis.com': 'Google 字体',
+  'play.googleapis.com': 'Google Play 服务',
+  'mtalk.google.com': 'Google 推送通道',
+  'video.twimg.com': 'X (Twitter) 视频',
+  'pbs.twimg.com': 'X (Twitter) 图片',
+  'abs.twimg.com': 'X (Twitter) 静态资源',
+  'api.github.com': 'GitHub API',
+  'raw.githubusercontent.com': 'GitHub 原始文件',
+  'objects.githubusercontent.com': 'GitHub Release 下载',
+  'graph.microsoft.com': '微软 Graph API (OneDrive 等)',
+};
+
+const _domainLabels = <String, String>{
+  'googlevideo.com': 'YouTube 视频流',
+  'youtube.com': 'YouTube',
+  'youtu.be': 'YouTube 短链',
+  'ytimg.com': 'YouTube 封面图',
+  'googleapis.com': 'Google API / 服务',
+  'gstatic.com': 'Google 静态资源',
+  'googleusercontent.com': 'Google 用户文件/云盘',
+  'google.com': 'Google 服务',
+  'ggpht.com': 'Google / YouTube 图片',
+  'gvt1.com': 'Google 下载/更新',
+  'gvt2.com': 'Google 下载/更新',
+  'twimg.com': 'X (Twitter) 图片/视频',
+  'x.com': 'X (Twitter)',
+  'twitter.com': 'X (Twitter)',
+  't.co': 'X (Twitter) 短链',
+  'atlassian.com': 'Atlassian (Jira/Confluence)',
+  'atlassian.net': 'Atlassian 云服务',
+  'microsoft.com': '微软服务',
+  'windows.net': '微软云存储 / OneDrive',
+  'azure.com': 'Microsoft Azure',
+  'sharepoint.com': 'OneDrive / SharePoint',
+  'onedrive.com': 'OneDrive 网盘',
+  'live.com': '微软账号 / OneDrive',
+  'msedge.net': 'Edge 服务',
+  'office.com': 'Microsoft 365 / Office',
+  'steamstatic.com': 'Steam 商店图片/视频',
+  'steampowered.com': 'Steam 商店',
+  'steamcommunity.com': 'Steam 社区',
+  'steamserver.net': 'Steam 服务器',
+  'github.com': 'GitHub',
+  'githubusercontent.com': 'GitHub 文件下载',
+  'chatgpt.com': 'ChatGPT',
+  'openai.com': 'OpenAI / ChatGPT',
+  'oaistatic.com': 'ChatGPT 静态资源',
+  'oaiusercontent.com': 'ChatGPT 用户文件',
+  'claude.ai': 'Claude AI',
+  'anthropic.com': 'Anthropic / Claude',
+  'cloudflare.com': 'Cloudflare',
+  'amazonaws.com': 'AWS 云服务',
+  'cloudfront.net': 'AWS CloudFront CDN',
+  'discord.com': 'Discord',
+  'discordapp.com': 'Discord',
+  'discordapp.net': 'Discord 媒体',
+  'telegram.org': 'Telegram',
+  't.me': 'Telegram',
+  'reddit.com': 'Reddit',
+  'redd.it': 'Reddit 媒体',
+  'redditmedia.com': 'Reddit 媒体',
+  'twitch.tv': 'Twitch 直播',
+  'ttvnw.net': 'Twitch 视频流',
+  'netflix.com': 'Netflix',
+  'nflxvideo.net': 'Netflix 视频流',
+  'spotify.com': 'Spotify 音乐',
+  'apple.com': 'Apple 服务',
+  'icloud.com': 'iCloud',
+  'bilibili.com': 'B站 (Bilibili)',
+  'hdslb.com': 'B站静态资源',
+  'bilivideo.com': 'B站视频流',
+  'pixiv.net': 'Pixiv',
+  'pximg.net': 'Pixiv 图片',
+  'e-hentai.org': 'E-Hentai',
+  'exhentai.org': 'ExHentai',
+  'ehgt.org': 'E-Hentai 缩略图',
+  'hath.network': 'E-Hentai 图床 (H@H)',
+  'dmm.co.jp': 'DMM',
+  'dlsite.com': 'DLsite',
+  'fanbox.cc': 'Pixiv FANBOX',
+  'booth.pm': 'BOOTH',
+  'nexusmods.com': 'Nexus Mods',
+  'wikipedia.org': '维基百科',
+  'huggingface.co': 'Hugging Face',
+};
+
+const _skipGeositeCats = {
+  'cn',
+  'private',
+  'tld-cn',
+  'tld-!cn',
+  'gfw',
+  'greatfire',
+  'win-spy',
+  'win-update',
+  'win-extra',
+  'apple-cn',
+  'google-cn',
+  'steam@cn',
+  'geolocation-cn',
+  'geolocation-!cn',
+  'alphabet',
+};
+
+(int, int) _readVarint(Uint8List buf, int i) {
+  var shift = 0;
+  var val = 0;
+  while (true) {
+    final b = buf[i++];
+    val |= (b & 0x7F) << shift;
+    if ((b & 0x80) == 0) return (val, i);
+    shift += 7;
+  }
+}
+
+Map<String, String> _parseGeositeBytes(Uint8List data) {
+  var i = 0;
+  final n = data.length;
+  final catDomains = <String, List<String>>{};
+  try {
+    while (i < n) {
+      final (tag, i1) = _readVarint(data, i);
+      i = i1;
+      if ((tag >> 3) == 1 && (tag & 7) == 2) {
+        final (ln, i2) = _readVarint(data, i);
+        i = i2;
+        final end = i + ln;
+        var code = '';
+        final doms = <String>[];
+        while (i < end) {
+          final (t2, i3) = _readVarint(data, i);
+          i = i3;
+          final fn = t2 >> 3;
+          final wt = t2 & 7;
+          if (fn == 1 && wt == 2) {
+            final (l2, i4) = _readVarint(data, i);
+            i = i4;
+            code = utf8.decode(data.sublist(i, i + l2), allowMalformed: true).toLowerCase();
+            i += l2;
+          } else if (fn == 2 && wt == 2) {
+            final (l2, i4) = _readVarint(data, i);
+            i = i4;
+            final dEnd = i + l2;
+            var dtype = 0;
+            var dval = '';
+            while (i < dEnd) {
+              final (t3, i5) = _readVarint(data, i);
+              i = i5;
+              final f3 = t3 >> 3;
+              final w3 = t3 & 7;
+              if (f3 == 1 && w3 == 0) {
+                final (v, i6) = _readVarint(data, i);
+                dtype = v;
+                i = i6;
+              } else if (f3 == 2 && w3 == 2) {
+                final (l3, i6) = _readVarint(data, i);
+                i = i6;
+                dval = utf8.decode(data.sublist(i, i + l3), allowMalformed: true).toLowerCase();
+                i += l3;
+              } else if (w3 == 0) {
+                final (_, i6) = _readVarint(data, i);
+                i = i6;
+              } else if (w3 == 2) {
+                final (l3, i6) = _readVarint(data, i);
+                i = i6 + l3;
+              } else if (w3 == 5) {
+                i += 4;
+              } else if (w3 == 1) {
+                i += 8;
+              }
+            }
+            if ((dtype == 2 || dtype == 3) && dval.isNotEmpty) {
+              doms.add(dval);
+            }
+          } else if (wt == 0) {
+            final (_, i4) = _readVarint(data, i);
+            i = i4;
+          } else if (wt == 2) {
+            final (l2, i4) = _readVarint(data, i);
+            i = i4 + l2;
+          } else if (wt == 5) {
+            i += 4;
+          } else if (wt == 1) {
+            i += 8;
+          }
+        }
+        if (code.isNotEmpty &&
+            !code.startsWith('category-') &&
+            !code.startsWith('geolocation-') &&
+            !_skipGeositeCats.contains(code) &&
+            doms.isNotEmpty) {
+          catDomains[code] = doms;
+        }
+      } else {
+        final wt = tag & 7;
+        if (wt == 0) {
+          final (_, i2) = _readVarint(data, i);
+          i = i2;
+        } else if (wt == 2) {
+          final (ln, i2) = _readVarint(data, i);
+          i = i2 + ln;
+        } else if (wt == 5) {
+          i += 4;
+        } else if (wt == 1) {
+          i += 8;
+        }
+      }
+    }
+  } catch (_) {}
+
+  final best = <String, (int, String)>{};
+  for (final e in catDomains.entries) {
+    final c = e.key.split('@').first.trim();
+    if (c.isEmpty) continue;
+    final label = _domainLabels['$c.com'] ??
+        c
+            .split(RegExp(r'[-_]+'))
+            .where((s) => s.isNotEmpty)
+            .map((s) => s.length <= 2 ? s.toUpperCase() : '${s[0].toUpperCase()}${s.substring(1)}')
+            .join(' ');
+    final sz = e.value.length;
+    for (final d in e.value) {
+      final prev = best[d];
+      if (prev == null || sz < prev.$1) {
+        best[d] = (sz, label);
+      }
+    }
+  }
+  return {for (final e in best.entries) e.key: e.value.$2};
+}
+
 String extractRootDomain(String host) {
   if (host.isEmpty) return '(未知)';
   final h = host.trim().toLowerCase().replaceAll(RegExp(r'\.+$'), '');
@@ -220,6 +493,8 @@ class TrafficMonitorService extends ChangeNotifier {
   final Map<String, TrafficBucket> _daily = {};
   final Map<String, HourlyTotal> _hourly = {};
   final Map<String, String> _appNames = {};
+  Map<String, String> _geositeMap = {};
+  bool installedAppsPermissionMissing = false;
 
   String deviceName = 'PHONE';
   String gistId = '';
@@ -251,7 +526,8 @@ class TrafficMonitorService extends ChangeNotifier {
       final homeDir = await appPath.homeDirPath;
       _storePath = p.join(homeDir, 'traffic_monitor_data.json');
       await _loadFromDisk();
-      unawaited(_refreshAppNames());
+      unawaited(refreshAppNames());
+      unawaited(_loadGeosite(homeDir));
 
       _saveTimer = Timer.periodic(const Duration(seconds: 20), (_) {
         if (_dirty) {
@@ -284,10 +560,29 @@ class TrafficMonitorService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _refreshAppNames() async {
+  Future<void> _loadGeosite(String homeDir) async {
     try {
-      final pkgs = await app?.getPackages();
-      if (pkgs == null) return;
+      final f = File(p.join(homeDir, 'geosite.dat'));
+      if (!await f.exists()) return;
+      final bytes = await f.readAsBytes();
+      final parsed = await compute(_parseGeositeBytes, bytes);
+      if (parsed.isNotEmpty) {
+        _geositeMap = parsed;
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> refreshAppNames({bool requestPermission = false}) async {
+    try {
+      final a = app;
+      if (a == null) return;
+      var granted = await a.isInstalledAppsPermissionGranted();
+      if (!granted && requestPermission) {
+        granted = await a.requestInstalledAppsPermission();
+      }
+      installedAppsPermissionMissing = !granted;
+      final pkgs = await a.getPackages();
       for (final pkg in pkgs) {
         if (pkg.packageName.isNotEmpty && pkg.label.isNotEmpty) {
           _appNames[pkg.packageName] = pkg.label;
@@ -299,7 +594,19 @@ class TrafficMonitorService extends ChangeNotifier {
 
   String displayNameForApp(String appKey) {
     if (appKey.isEmpty) return '(系统/未知)';
-    return _appNames[appKey] ?? appKey;
+    return _appNames[appKey] ?? _builtinAppNames[appKey] ?? appKey;
+  }
+
+  String displayNameForDomain(String domain) {
+    if (domain.isEmpty) return '(未知)';
+    final d = domain.trim().toLowerCase().replaceAll(RegExp(r'\.+$'), '');
+    if (_subdomainLabels.containsKey(d)) return _subdomainLabels[d]!;
+    if (_domainLabels.containsKey(d)) return _domainLabels[d]!;
+    final root = extractRootDomain(d);
+    if (_domainLabels.containsKey(root)) return _domainLabels[root]!;
+    if (_geositeMap.containsKey(d)) return _geositeMap[d]!;
+    if (_geositeMap.containsKey(root)) return _geositeMap[root]!;
+    return domain;
   }
 
   String _dayStr(DateTime dt) =>
@@ -451,8 +758,8 @@ class TrafficMonitorService extends ChangeNotifier {
     }
     final usedApps = <String, String>{};
     for (final b in _daily.values) {
-      final dn = _appNames[b.app];
-      if (dn != null && dn.isNotEmpty) {
+      final dn = displayNameForApp(b.app);
+      if (dn.isNotEmpty && dn != b.app) {
         usedApps[b.app] = dn;
       }
     }
@@ -665,7 +972,7 @@ class TrafficMonitorService extends ChangeNotifier {
       for (final e in agg.entries)
         TrafficItemStat(
           key: e.key,
-          displayName: e.key,
+          displayName: displayNameForDomain(e.key),
           up: e.value.up,
           down: e.value.down,
         ),
@@ -695,7 +1002,7 @@ class TrafficMonitorService extends ChangeNotifier {
       for (final e in agg.entries)
         TrafficItemStat(
           key: e.key,
-          displayName: e.key,
+          displayName: displayNameForDomain(e.key),
           up: e.value.up,
           down: e.value.down,
           extra: e.value.apps.take(3).toList(),
