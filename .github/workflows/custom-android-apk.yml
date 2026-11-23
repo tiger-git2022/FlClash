@@ -98,6 +98,21 @@ jobs:
           curl -fsSL --retry 3 -o "$bundle" "https://curl.se/ca/$CA_BUNDLE"
           echo "$CA_BUNDLE_SHA256  $bundle" | sha256sum -c -
 
+      - name: Compute Monotonic Release Version
+        id: ver
+        run: |
+          base="$(sed -n 's/^version: *\([0-9]*\.[0-9]*\.[0-9]*\).*/\1/p' pubspec.yaml)"
+          committed="$(sed -n 's/^version: .*+\([0-9]*\)$/\1/p' pubspec.yaml)"
+          build="$(date -u +%Y%m%d%H)"
+          if ((build <= ${committed:-0})); then
+            build=$((committed + 1))
+          fi
+          full="${base}+${build}"
+          sed -i "s/^version: .*/version: $full/" pubspec.yaml
+          echo "version=$full" >> "$GITHUB_OUTPUT"
+          echo "tag=v$full" >> "$GITHUB_OUTPUT"
+          echo "Building version $full (tag v$full)"
+
       - name: Build Android APK
         env:
           ANDROID_NDK_HOME: ${{ steps.build-ndk.outputs.ndk-path }}
@@ -113,13 +128,14 @@ jobs:
       - name: Publish to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.ver.outputs.tag }}
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          TAG="custom-latest"
           DATE_STR="$(date -u +%Y-%m-%d\ %H:%M\ UTC)"
-          NOTES="自动构建的 FlClash 流量监控定制版（构建时间：$DATE_STR）。内置「工具 → 流量统计」页面与 GitHub Gist 云同步。"
+          NOTES="自动构建的 FlClash 流量监控定制版（版本：$VERSION，构建时间：$DATE_STR）。使用固定签名密钥，支持应用内「关于 → 检查更新」直接覆盖升级，保留全部配置与统计数据。"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" ./dist/*.apk --clobber
-            gh release edit "$TAG" --notes "$NOTES"
+            gh release edit "$TAG" --notes "$NOTES" --latest
           else
-            gh release create "$TAG" ./dist/*.apk --title "FlClash 流量监控定制版 (Latest)" --notes "$NOTES"
+            gh release create "$TAG" ./dist/*.apk --title "FlClash 定制版 $TAG" --notes "$NOTES" --latest
           fi
